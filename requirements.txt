@@ -2,3 +2,5 @@ fastapi[standard]
 psutil
 sqlalchemy
 requests
+
+prometheus-fastapi-instrumentator
