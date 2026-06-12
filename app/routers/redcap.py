@@ -116,6 +116,39 @@ async def get_wp6_sessions(record_id: str):
     }
 
 
+@router.get("/nlp/responses")
+async def get_nlp_responses(
+    response_type: Optional[str] = None,
+    sentiment: Optional[str] = None,
+    limit: int = Query(100, ge=1, le=500)
+):
+    """Get qualitative text responses for NLP processing."""
+    client = get_redcap_client()
+    responses = client.get_nlp_responses(
+        response_type=response_type, sentiment=sentiment
+    )
+    return {
+        "data": responses[:limit],
+        "count": len(responses),
+        "mode": "mock (embedded)" if client.use_mock else "external"
+    }
+
+
+@router.get("/participants/{record_id}/nlp-responses")
+async def get_participant_nlp_responses(record_id: str):
+    """Get NLP responses for a specific participant."""
+    client = get_redcap_client()
+    participant = client.get_participant(record_id)
+    if not participant:
+        raise HTTPException(status_code=404, detail="Participant not found")
+    responses = client.get_nlp_responses(record_id=record_id)
+    return {
+        "record_id": record_id,
+        "responses": responses,
+        "count": len(responses)
+    }
+
+
 @router.get("/export/records")
 async def export_records(
     format: str = Query("json", regex="^(json|csv)$"),

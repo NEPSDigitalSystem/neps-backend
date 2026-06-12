@@ -111,9 +111,40 @@ class RedCapClient:
         if self.use_mock:
             return self.mock_client.get_wp6_sessions(record_id)
         else:
-            response = requests.get(f"{self.api_url}/wp6/sessions/{record_id}")
+            response = requests.get(f"{self.api_url}/wp6-sessions/{record_id}")
             response.raise_for_status()
             return response.json()["sessions"]
+
+    def get_nlp_responses(self, record_id: Optional[str] = None,
+                         response_type: Optional[str] = None,
+                         sentiment: Optional[str] = None) -> List[Dict]:
+        if self.use_mock:
+            # Check if mock has NLP (in case it's outdated)
+            if hasattr(self.mock_client, "nlp_responses"):
+                results = self.mock_client.nlp_responses.copy()
+                if record_id:
+                    results = [r for r in results if r["participant_id"] == record_id]
+                if response_type:
+                    results = [r for r in results if r["response_type"] == response_type]
+                if sentiment:
+                    results = [r for r in results if r["sentiment_manual"] == sentiment]
+                return results
+            else:
+                return []
+        else:
+            params = {}
+            if response_type:
+                params["response_type"] = response_type
+            if sentiment:
+                params["sentiment"] = sentiment
+            if record_id:
+                response = requests.get(f"{self.api_url}/participants/{record_id}/nlp-responses", params=params)
+                response.raise_for_status()
+                return response.json()["responses"]
+            else:
+                response = requests.get(f"{self.api_url}/nlp/responses", params=params)
+                response.raise_for_status()
+                return response.json()["data"]
 
     def export_records(self, format: str = "json",
                       fields: Optional[List[str]] = None,
