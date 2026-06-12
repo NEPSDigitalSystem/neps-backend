@@ -29,3 +29,13 @@ clean:
 
 install:
 	pip install -r requirements.txt
+
+
+.PHONY: makemigrations migrate
+
+
+makemigrations:
+	alembic revision --autogenerate -m "$(m)"
+
+migrate:
+	alembic upgrade head
