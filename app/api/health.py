@@ -1,5 +1,5 @@
 from fastapi import APIRouter, Depends
-from sqlalchemy.orm import Session
+from sqlalchemy.ext.asyncio import AsyncSession
 from datetime import datetime
 import psutil
 import os
@@ -10,7 +10,7 @@ from app.api.dependencies import get_db
 router = APIRouter()
 
 @router.get("/health")
-async def health_check(db: Session = Depends(get_db)):
+async def health_check(db: AsyncSession = Depends(get_db)):
     """NEPS Digital health check for load balancers and monitoring"""
     
     checks = {
@@ -20,7 +20,7 @@ async def health_check(db: Session = Depends(get_db)):
         "service": "neps-backend",
         
         "dependencies": {
-            "database": _check_database(db),
+            "database": await _check_database(db),
             "redis": _check_redis(),
             "redcap": _check_redcap(),
             "disk": _check_disk_space(),
@@ -40,10 +40,10 @@ async def health_check(db: Session = Depends(get_db)):
     
     return checks
 
-def _check_database(db: Session):
+async def _check_database(db: AsyncSession):
     try:
         from sqlalchemy import text
-        db.execute(text("SELECT 1"))
+        await db.execute(text("SELECT 1"))
         return {"status": "healthy", "latency_ms": 5}
     except Exception as e:
         return {"status": "unhealthy", "error": str(e)}
