@@ -34,4 +34,4 @@ def read_root():
         "app_env": settings.APP_ENV,
         "redcap_mock_enabled": settings.REDCAP_MOCK_ENABLED
     }
-
+
