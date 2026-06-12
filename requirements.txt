@@ -1,6 +1,11 @@
 fastapi[standard]
 psutil
 sqlalchemy
+asyncpg
+psycopg2-binary
+alembic
+python-dotenv
+pydantic-settings
 requests
 
 prometheus-fastapi-instrumentator
