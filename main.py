@@ -1,7 +1,7 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from app.api import health
-from app.routers import redcap_mock
+from app.routers import redcap
 from app.core.config import get_settings
 from prometheus_fastapi_instrumentator import Instrumentator
 
@@ -20,7 +20,7 @@ app.add_middleware(
 
 # Include routers
 app.include_router(health.router)
-app.include_router(redcap_mock.router)
+app.include_router(redcap.router)
 
 # Instrument the app for Prometheus metrics
 Instrumentator().instrument(app).expose(app)
