@@ -6,7 +6,7 @@ FastAPI endpoints that simulate REDCap API responses.
 Mount this in development mode, swap to real REDCap client in production.
 """
 
-from fastapi import APIRouter, HTTPException, Query
+from fastapi import APIRouter, HTTPException, Query, Depends
 from typing import Optional, List
 from app.services.redcap_mock import RedCapMockClient
 
@@ -38,10 +38,10 @@ async def get_participants(
     country: Optional[str] = None,
     site: Optional[str] = None,
     status: Optional[str] = None,
-    limit: int = Query(100, ge=1, le=500)
+    limit: int = Query(100, ge=1, le=500),
+    client: RedCapMockClient = Depends(get_mock_client)
 ):
     """Get participant registry with filtering."""
-    client = get_mock_client()
     participants = client.get_participants(country=country, site=site, status=status)
     return {
         "data": participants[:limit],
@@ -52,9 +52,11 @@ async def get_participants(
 
 
 @router.get("/participants/{record_id}")
-async def get_participant(record_id: str):
+async def get_participant(
+    record_id: str,
+    client: RedCapMockClient = Depends(get_mock_client)
+):
     """Get single participant by record ID."""
-    client = get_mock_client()
     participant = client.get_participant(record_id)
     if not participant:
         raise HTTPException(status_code=404, detail="Participant not found")
@@ -65,10 +67,10 @@ async def get_participant(record_id: str):
 async def get_participant_surveys(
     record_id: str,
     instrument: Optional[str] = None,
-    event: Optional[str] = None
+    event: Optional[str] = None,
+    client: RedCapMockClient = Depends(get_mock_client)
 ):
     """Get all survey responses for a participant."""
-    client = get_mock_client()
     responses = client.get_survey_responses(record_id=record_id,
                                             instrument=instrument,
                                             event=event)
@@ -80,9 +82,11 @@ async def get_participant_surveys(
 
 
 @router.get("/participants/{record_id}/consent")
-async def get_consent_status(record_id: str):
+async def get_consent_status(
+    record_id: str,
+    client: RedCapMockClient = Depends(get_mock_client)
+):
     """Get consent/assent status."""
-    client = get_mock_client()
     consent = client.get_consent_status(record_id)
     if not consent:
         raise HTTPException(status_code=404, detail="Consent record not found")
@@ -90,9 +94,11 @@ async def get_consent_status(record_id: str):
 
 
 @router.get("/screenings/distress")
-async def get_distress_screenings(status: Optional[str] = None):
+async def get_distress_screenings(
+    status: Optional[str] = None,
+    client: RedCapMockClient = Depends(get_mock_client)
+):
     """Get distress/safeguarding screenings."""
-    client = get_mock_client()
     screenings = client.get_distress_screenings(status=status)
     return {
         "screenings": screenings,
@@ -102,17 +108,23 @@ async def get_distress_screenings(status: Optional[str] = None):
 
 
 @router.post("/referrals")
-async def create_referral(record_id: str, destination: str, notes: str = ""):
+async def create_referral(
+    record_id: str, 
+    destination: str, 
+    notes: str = "",
+    client: RedCapMockClient = Depends(get_mock_client)
+):
     """Create a safeguarding referral."""
-    client = get_mock_client()
     referral = client.create_referral(record_id, destination, notes)
     return referral
 
 
 @router.get("/wp6/sessions/{record_id}")
-async def get_wp6_sessions(record_id: str):
+async def get_wp6_sessions(
+    record_id: str,
+    client: RedCapMockClient = Depends(get_mock_client)
+):
     """Get WP6 intervention sessions."""
-    client = get_mock_client()
     sessions = client.get_wp6_sessions(record_id)
     return {
         "record_id": record_id,
@@ -126,22 +138,24 @@ async def get_wp6_sessions(record_id: str):
 async def export_records(
     format: str = Query("json", regex="^(json|csv)$"),
     fields: Optional[List[str]] = Query(None),
-    events: Optional[List[str]] = Query(None)
+    events: Optional[List[str]] = Query(None),
+    client: RedCapMockClient = Depends(get_mock_client)
 ):
     """Export records in REDCap format."""
-    client = get_mock_client()
     return client.export_records(format=format, fields=fields, events=events)
 
 
 @router.get("/export/metadata")
-async def export_metadata():
+async def export_metadata(
+    client: RedCapMockClient = Depends(get_mock_client)
+):
     """Export REDCap project metadata."""
-    client = get_mock_client()
     return client.export_metadata()
 
 
 @router.get("/stats")
-async def get_project_stats():
+async def get_project_stats(
+    client: RedCapMockClient = Depends(get_mock_client)
+):
     """Get project statistics."""
-    client = get_mock_client()
     return client.get_stats()

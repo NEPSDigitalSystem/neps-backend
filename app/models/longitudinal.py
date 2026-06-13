@@ -9,7 +9,9 @@ from sqlalchemy import (
     Float,
     Text,
     func,
+    ForeignKey,
 )
+from sqlalchemy.orm import relationship
 from sqlalchemy.dialects.postgresql import UUID
 import uuid
 from app.db.session import Base
@@ -40,8 +42,7 @@ class SurveyResponse(Base):
     __table_args__ = {"schema": "neps_core"}
 
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    record_id = Column(String, nullable=False, index=True)
-    redcap_event_name = Column(String, nullable=False)
+    record_id = Column(String, ForeignKey("neps_core.participants.record_id", ondelete="CASCADE"), nullable=False, index=True)
     month = Column(Integer)
     survey_date = Column(Date)
     survey_complete = Column(Enum(SurveyStatus), default=SurveyStatus.INCOMPLETE)
@@ -109,14 +110,15 @@ class SurveyResponse(Base):
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
 
+    participant = relationship("Participant", back_populates="surveys")
+
 
 class DistressScreening(Base):
     __tablename__ = "distress_screenings"
     __table_args__ = {"schema": "neps_core"}
 
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    record_id = Column(String, nullable=False, index=True)
-    screening_date = Column(Date)
+    record_id = Column(String, ForeignKey("neps_core.participants.record_id", ondelete="CASCADE"), nullable=False, index=True)
     distress_score = Column(Float)
     suicidality_flag = Column(String)
     severity = Column(Enum(RiskLevel))
@@ -131,6 +133,8 @@ class DistressScreening(Base):
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
 
+    participant = relationship("Participant", back_populates="distress_screenings")
+
 
 class Referral(Base):
     __tablename__ = "referrals"
@@ -138,7 +142,7 @@ class Referral(Base):
 
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     referral_id = Column(String, unique=True, nullable=False)
-    record_id = Column(String, nullable=False, index=True)
+    record_id = Column(String, ForeignKey("neps_core.participants.record_id", ondelete="CASCADE"), nullable=False, index=True)
     initiation_date = Column(Date)
     destination = Column(String)
     status = Column(Enum(ReferralStatus), default=ReferralStatus.INITIATED)
@@ -147,13 +151,15 @@ class Referral(Base):
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
 
+    participant = relationship("Participant", back_populates="referrals")
+
 
 class WP6Session(Base):
     __tablename__ = "wp6_sessions"
     __table_args__ = {"schema": "neps_core"}
 
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    record_id = Column(String, nullable=False, index=True)
+    record_id = Column(String, ForeignKey("neps_core.participants.record_id", ondelete="CASCADE"), nullable=False, index=True)
     session_number = Column(Integer, nullable=False)
     session_date = Column(Date)
     attendance = Column(String)
@@ -165,3 +171,5 @@ class WP6Session(Base):
     distress_post = Column(Float)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
+
+    participant = relationship("Participant", back_populates="wp6_sessions")
