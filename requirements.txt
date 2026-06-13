@@ -1,11 +1,11 @@
-fastapi[standard]
-psutil
-sqlalchemy
-asyncpg
-psycopg2-binary
-alembic
-python-dotenv
-pydantic-settings
-requests
+fastapi[standard]==0.115.0
+psutil==5.9.8
+sqlalchemy==2.0.35
+asyncpg==0.29.0
+psycopg2-binary==2.9.9
+alembic==1.13.3
+python-dotenv==1.0.1
+pydantic-settings==2.5.2
+requests==2.32.3
 
-prometheus-fastapi-instrumentator
+prometheus-fastapi-instrumentator==7.0.0
