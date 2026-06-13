@@ -37,16 +37,16 @@ class Settings(BaseSettings):
     DATABASE_PASSWORD_FILE: Optional[str] = None
 
     # REDCap
-    REDCAP_API_URL: str = "http://localhost:8000/api/redcap"
-    REDCAP_API_TOKEN: Optional[str] = None
+    REDCAP_API_URL: str = "https://mock-redcap-service.onrender.com/api"
+    REDCAP_API_TOKEN: Optional[str] = "mock_token_neps_2025"
     REDCAP_PROJECT_ID: str = "NEPS-2025"
-    REDCAP_MOCK_ENABLED: bool = True
+    REDCAP_MOCK_ENABLED: bool = False
     REDCAP_API_TOKEN_FILE: Optional[str] = None
 
     # JWT & Security
     SECRET_KEY: Optional[str] = None
     SECRET_KEY_FILE: Optional[str] = None
-    JWT_ALGORITHM: str = "ES256"
+    JWT_ALGORITHM: str = "HS256"
     JWT_ACCESS_TOKEN_EXPIRE_MINUTES: int = 30
     JWT_REFRESH_TOKEN_EXPIRE_DAYS: int = 7
 

@@ -1,5 +1,6 @@
 
-from sqlalchemy import Column, String, Integer, Date, Enum, DateTime, func
+from sqlalchemy import Column, String, Integer, Date, Enum, DateTime, func, ForeignKey
+from sqlalchemy.orm import relationship
 from sqlalchemy.dialects.postgresql import UUID
 import uuid
 from app.db.session import Base
@@ -41,6 +42,13 @@ class Participant(Base):
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
 
+    # Relationships
+    consents = relationship("ConsentRecord", back_populates="participant", cascade="all, delete-orphan")
+    surveys = relationship("SurveyResponse", back_populates="participant", cascade="all, delete-orphan")
+    distress_screenings = relationship("DistressScreening", back_populates="participant", cascade="all, delete-orphan")
+    referrals = relationship("Referral", back_populates="participant", cascade="all, delete-orphan")
+    wp6_sessions = relationship("WP6Session", back_populates="participant", cascade="all, delete-orphan")
+
 
 class ConsentRecord(Base):
     __tablename__ = "consent_records"
@@ -48,7 +56,7 @@ class ConsentRecord(Base):
 
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     participant_id = Column(UUID(as_uuid=True), nullable=False)
-    record_id = Column(String, nullable=False)
+    record_id = Column(String, ForeignKey("neps_core.participants.record_id", ondelete="CASCADE"), nullable=False)
     consent_date = Column(Date)
     consent_version = Column(String)
     consent_status = Column(Enum(ConsentStatus))
@@ -60,3 +68,5 @@ class ConsentRecord(Base):
     re_consent_date = Column(Date)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
+
+    participant = relationship("Participant", back_populates="consents")
