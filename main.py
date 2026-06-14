@@ -1,13 +1,25 @@
+from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from app.api import health
 from app.routers import redcap
+from app.api.v1.redcap_sync import router as sync_router, scheduled_sync
 from app.core.config import get_settings
 from prometheus_fastapi_instrumentator import Instrumentator
+from apscheduler.schedulers.asyncio import AsyncIOScheduler
 
 settings = get_settings()
 
-app = FastAPI(title="NEPS API")
+scheduler = AsyncIOScheduler()
+scheduler.add_job(scheduled_sync, "interval", minutes=60)
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    scheduler.start()
+    yield
+    scheduler.shutdown()
+
+app = FastAPI(title="NEPS API", lifespan=lifespan)
 
 # Set up CORS
 app.add_middleware(
@@ -21,6 +33,7 @@ app.add_middleware(
 # Include routers
 app.include_router(health.router)
 app.include_router(redcap.router)
+app.include_router(sync_router)
 
 # Instrument the app for Prometheus metrics
 Instrumentator().instrument(app).expose(app)
@@ -34,4 +47,3 @@ def read_root():
         "app_env": settings.APP_ENV,
         "redcap_mock_enabled": settings.REDCAP_MOCK_ENABLED
     }
-
