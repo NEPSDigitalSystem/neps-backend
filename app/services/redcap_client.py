@@ -91,7 +91,8 @@ class RedCapClient:
             params = {}
             if status:
                 params["status"] = status
-            response = requests.get(f"{self.api_url}/screenings/distress", params=params)
+            # Render mock path: /api/distress-screenings
+            response = requests.get(f"{self.api_url}/distress-screenings", params=params)
             response.raise_for_status()
             return response.json()["screenings"]
 
@@ -111,6 +112,7 @@ class RedCapClient:
         if self.use_mock:
             return self.mock_client.get_wp6_sessions(record_id)
         else:
+            # Render mock path: /api/wp6-sessions/{participant_id}
             response = requests.get(f"{self.api_url}/wp6-sessions/{record_id}")
             response.raise_for_status()
             return response.json()["sessions"]
