@@ -3,9 +3,11 @@ NEPS Digital — REDCap API Router
 ================================
 FastAPI endpoints that proxy REDCap data.
 All calls to RedCapClient are awaited because the client is now async.
+
 """
 
-from fastapi import APIRouter, HTTPException, Query
+from fastapi import APIRouter, HTTPException, Query, Depends
+from app.api.dependencies import require_consent
 from typing import Optional, List
 from app.services.redcap_client import get_redcap_client
 from app.core.config import get_settings
@@ -57,7 +59,8 @@ async def get_participant(record_id: str):
 async def get_participant_surveys(
     record_id: str,
     instrument: Optional[str] = None,
-    event: Optional[str] = None,
+    event: Optional[str] = None, 
+    consent=Depends(require_consent) # Added consent enforcement
 ):
     """Get all survey responses for a participant."""
     client = get_redcap_client()
@@ -68,8 +71,8 @@ async def get_participant_surveys(
 
 
 @router.get("/participants/{record_id}/consent")
-async def get_consent_status(record_id: str):
-    """Get consent and assent status for a participant."""
+async def get_consent_status(record_id: str, consent=Depends(require_consent)):
+    """Get consent and assent status for a participant.""" # consent enforcement blocks if not consented
     client = get_redcap_client()
     consent = await client.get_consent_status(record_id)
     if not consent:
