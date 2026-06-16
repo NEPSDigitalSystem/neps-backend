@@ -1,13 +1,13 @@
 """
 NEPS Digital — REDCap API Router
 ================================
-FastAPI endpoints that proxy REDCap API.
-Uses either:
-1. Embedded mock REDCap (REDCAP_MOCK_ENABLED=True)
-2. Deployed mock REDCap or real REDCap (REDCAP_MOCK_ENABLED=False)
+FastAPI endpoints that proxy REDCap data.
+All calls to RedCapClient are awaited because the client is now async.
+
 """
 
-from fastapi import APIRouter, HTTPException, Query
+from fastapi import APIRouter, HTTPException, Query, Depends
+from app.api.dependencies import require_consent
 from typing import Optional, List
 from app.services.redcap_client import get_redcap_client
 from app.core.config import get_settings
@@ -23,7 +23,7 @@ async def redcap_health():
     return {
         "status": "connected",
         "mode": "mock (embedded)" if client.use_mock else f"external ({settings.REDCAP_API_URL})",
-        "note": "Replace with real REDCap in production."
+        "note": "Replace with real REDCap in production.",
     }
 
 
@@ -32,24 +32,24 @@ async def get_participants(
     country: Optional[str] = None,
     site: Optional[str] = None,
     status: Optional[str] = None,
-    limit: int = Query(100, ge=1, le=500)
+    limit: int = Query(100, ge=1, le=500),
 ):
-    """Get participant registry with filtering."""
+    """Get participant registry with optional filtering."""
     client = get_redcap_client()
-    participants = client.get_participants(country=country, site=site, status=status)
+    participants = await client.get_participants(country=country, site=site, status=status)
     return {
         "data": participants[:limit],
         "total": len(participants),
         "filtered": len(participants[:limit]),
-        "mode": "mock (embedded)" if client.use_mock else "external"
+        "mode": "mock" if client.use_mock else "external",
     }
 
 
 @router.get("/participants/{record_id}")
 async def get_participant(record_id: str):
-    """Get single participant by record ID."""
+    """Get a single participant by record ID."""
     client = get_redcap_client()
-    participant = client.get_participant(record_id)
+    participant = await client.get_participant(record_id)
     if not participant:
         raise HTTPException(status_code=404, detail="Participant not found")
     return participant
@@ -59,25 +59,22 @@ async def get_participant(record_id: str):
 async def get_participant_surveys(
     record_id: str,
     instrument: Optional[str] = None,
-    event: Optional[str] = None
+    event: Optional[str] = None, 
+    consent=Depends(require_consent) # Added consent enforcement
 ):
     """Get all survey responses for a participant."""
     client = get_redcap_client()
-    responses = client.get_survey_responses(record_id=record_id,
-                                            instrument=instrument,
-                                            event=event)
-    return {
-        "record_id": record_id,
-        "responses": responses,
-        "count": len(responses)
-    }
+    responses = await client.get_survey_responses(
+        record_id=record_id, instrument=instrument, event=event
+    )
+    return {"record_id": record_id, "responses": responses, "count": len(responses)}
 
 
 @router.get("/participants/{record_id}/consent")
-async def get_consent_status(record_id: str):
-    """Get consent/assent status."""
+async def get_consent_status(record_id: str, consent=Depends(require_consent)):
+    """Get consent and assent status for a participant.""" # consent enforcement blocks if not consented
     client = get_redcap_client()
-    consent = client.get_consent_status(record_id)
+    consent = await client.get_consent_status(record_id)
     if not consent:
         raise HTTPException(status_code=404, detail="Consent record not found")
     return consent
@@ -85,13 +82,15 @@ async def get_consent_status(record_id: str):
 
 @router.get("/screenings/distress")
 async def get_distress_screenings(status: Optional[str] = None):
-    """Get distress/safeguarding screenings."""
+    """Get distress and safeguarding screenings."""
     client = get_redcap_client()
-    screenings = client.get_distress_screenings(status=status)
+    screenings = await client.get_distress_screenings(status=status)
     return {
         "screenings": screenings,
         "count": len(screenings),
-        "high_risk_count": len([s for s in screenings if s.get("severity") in ["high", "critical"]])
+        "high_risk_count": len(
+            [s for s in screenings if s.get("severity") in ["high", "critical"]]
+        ),
     }
 
 
@@ -99,20 +98,25 @@ async def get_distress_screenings(status: Optional[str] = None):
 async def create_referral(record_id: str, destination: str, notes: str = ""):
     """Create a safeguarding referral."""
     client = get_redcap_client()
-    referral = client.create_referral(record_id, destination, notes)
+    referral = await client.create_referral(record_id, destination, notes)
     return referral
 
 
 @router.get("/wp6/sessions/{record_id}")
 async def get_wp6_sessions(record_id: str):
-    """Get WP6 intervention sessions."""
+    """Get WP6 intervention sessions for a participant."""
     client = get_redcap_client()
-    sessions = client.get_wp6_sessions(record_id)
+    sessions = await client.get_wp6_sessions(record_id)
+    attendance_rate = (
+        len([s for s in sessions if s.get("attendance") == "Present"]) / len(sessions) * 100
+        if sessions
+        else 0
+    )
     return {
         "record_id": record_id,
         "sessions": sessions,
         "total_sessions": len(sessions),
-        "attendance_rate": len([s for s in sessions if s.get("attendance") == "Present"]) / len(sessions) * 100 if sessions else 0
+        "attendance_rate": attendance_rate,
     }
 
 
@@ -120,17 +124,17 @@ async def get_wp6_sessions(record_id: str):
 async def get_nlp_responses(
     response_type: Optional[str] = None,
     sentiment: Optional[str] = None,
-    limit: int = Query(100, ge=1, le=500)
+    limit: int = Query(100, ge=1, le=500),
 ):
     """Get qualitative text responses for NLP processing."""
     client = get_redcap_client()
-    responses = client.get_nlp_responses(
+    responses = await client.get_nlp_responses(
         response_type=response_type, sentiment=sentiment
     )
     return {
         "data": responses[:limit],
         "count": len(responses),
-        "mode": "mock (embedded)" if client.use_mock else "external"
+        "mode": "mock" if client.use_mock else "external",
     }
 
 
@@ -138,37 +142,33 @@ async def get_nlp_responses(
 async def get_participant_nlp_responses(record_id: str):
     """Get NLP responses for a specific participant."""
     client = get_redcap_client()
-    participant = client.get_participant(record_id)
+    participant = await client.get_participant(record_id)
     if not participant:
         raise HTTPException(status_code=404, detail="Participant not found")
-    responses = client.get_nlp_responses(record_id=record_id)
-    return {
-        "record_id": record_id,
-        "responses": responses,
-        "count": len(responses)
-    }
+    responses = await client.get_nlp_responses(record_id=record_id)
+    return {"record_id": record_id, "responses": responses, "count": len(responses)}
 
 
 @router.get("/export/records")
 async def export_records(
-    format: str = Query("json", regex="^(json|csv)$"),
+    format: str = Query("json", pattern="^(json|csv)$"),
     fields: Optional[List[str]] = Query(None),
-    events: Optional[List[str]] = Query(None)
+    events: Optional[List[str]] = Query(None),
 ):
     """Export records in REDCap format."""
     client = get_redcap_client()
-    return client.export_records(format=format, fields=fields, events=events)
+    return await client.export_records(format=format, fields=fields, events=events)
 
 
 @router.get("/export/metadata")
 async def export_metadata():
     """Export REDCap project metadata."""
     client = get_redcap_client()
-    return client.export_metadata()
+    return await client.export_metadata()
 
 
 @router.get("/stats")
 async def get_project_stats():
-    """Get project statistics."""
+    """Get overall project statistics."""
     client = get_redcap_client()
-    return client.get_stats()
+    return await client.get_stats()
