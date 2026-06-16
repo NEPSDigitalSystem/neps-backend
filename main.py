@@ -2,7 +2,7 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from app.api import health
-from app.routers import redcap
+from app.routers import redcap, portal
 from app.api.v1.redcap_sync import router as sync_router, scheduled_sync
 from app.core.config import get_settings
 from prometheus_fastapi_instrumentator import Instrumentator
@@ -33,6 +33,7 @@ app.add_middleware(
 # Include routers
 app.include_router(health.router)
 app.include_router(redcap.router)
+app.include_router(portal.router)
 app.include_router(sync_router)
 
 # Instrument the app for Prometheus metrics
