@@ -15,7 +15,7 @@ from app.models.longitudinal import (
     SurveyStatus,
     WP6Session,
 )
-from app.models.participant import ConsentRecord, ConsentStatus, CohortStatus, Participant
+from app.models.participant import ConsentStatus, CohortStatus, Participant
 
 router = APIRouter(prefix="/api/portal", tags=["Portal"])
 
