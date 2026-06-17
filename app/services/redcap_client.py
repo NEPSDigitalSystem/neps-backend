@@ -26,7 +26,7 @@ class RedCapClient:
             self.api_url = self.settings.REDCAP_API_URL.rstrip("/")
             self.api_token = self.settings.redcap_api_token or "mock_token_neps_2025"
             self.headers = {
-                "Authorization": f"Bearer {self.api_token}",
+                # "Authorization": f"Bearer {self.api_token}",
                 "Content-Type": "application/json",
             }
 
@@ -64,6 +64,7 @@ class RedCapClient:
 
         async with self._client() as client:
             response = await client.get(f"{self.api_url}/participants", params=params)
+            print(response.json()["data"])
             response.raise_for_status()
             return response.json()["data"]
 
