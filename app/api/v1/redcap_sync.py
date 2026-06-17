@@ -43,7 +43,7 @@ async def sync_participants(db: AsyncSession) -> dict:
 
     for p_data in participants:
         try:
-            record_id = p_data.get("record_id")
+            record_id = p_data.get("record_id") or p_data.get("participant_id") 
             if not record_id:
                 continue
 
@@ -128,7 +128,7 @@ async def sync_participants(db: AsyncSession) -> dict:
                 stats["updated"] += 1
 
         except Exception as e:
-            logger.error(f"Failed syncing participant {p_data.get('record_id', 'Unknown')}: {e}")
+            logger.error(f"Failed syncing participant {record_id or 'Unknown'}: {e}")
             stats["errors"] += 1
 
     # Single commit for all upserts
