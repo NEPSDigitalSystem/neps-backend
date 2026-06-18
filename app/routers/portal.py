@@ -1,7 +1,7 @@
 from typing import Any
 
 from fastapi import APIRouter, Depends, HTTPException, Query
-from sqlalchemy import case, func, select
+from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
@@ -12,10 +12,9 @@ from app.models.longitudinal import (
     ReferralStatus,
     RiskLevel,
     SurveyResponse,
-    SurveyStatus,
     WP6Session,
 )
-from app.models.participant import ConsentRecord, ConsentStatus, CohortStatus, Participant
+from app.models.participant import ConsentStatus, CohortStatus, Participant
 
 router = APIRouter(prefix="/api/portal", tags=["Portal"])
 
@@ -36,14 +35,18 @@ async def get_portal_stats(db: AsyncSession = Depends(get_db)) -> dict[str, Any]
     ).scalar_one()
 
     consent_result = await db.execute(
-        select(Participant.consent_status, func.count(Participant.id)).group_by(Participant.consent_status)
+        select(Participant.consent_status, func.count(Participant.id)).group_by(
+            Participant.consent_status
+        )
     )
     consent_breakdown = {status.value: 0 for status in ConsentStatus}
     for status, count in consent_result.all():
         consent_breakdown[status.value if status else "unknown"] = count
 
     cohort_result = await db.execute(
-        select(Participant.cohort_status, func.count(Participant.id)).group_by(Participant.cohort_status)
+        select(Participant.cohort_status, func.count(Participant.id)).group_by(
+            Participant.cohort_status
+        )
     )
     cohort_breakdown = {status.value: 0 for status in CohortStatus}
     for status, count in cohort_result.all():
@@ -134,12 +137,12 @@ async def list_participants(
     if cohort_status:
         items_stmt = items_stmt.where(Participant.cohort_status == cohort_status.value)
     if consent_status:
-        items_stmt = items_stmt.where(Participant.consent_status == consent_status.value)
+        items_stmt = items_stmt.where(
+            Participant.consent_status == consent_status.value
+        )
 
     items_stmt = (
-        items_stmt.order_by(Participant.record_id.asc())
-        .offset(offset)
-        .limit(limit)
+        items_stmt.order_by(Participant.record_id.asc()).offset(offset).limit(limit)
     )
     participants = (await db.execute(items_stmt)).scalars().all()
 
@@ -157,10 +160,18 @@ async def list_participants(
                 "age": participant.age,
                 "gender": participant.gender,
                 "grade_level": participant.grade_level,
-                "cohort_status": participant.cohort_status.value if participant.cohort_status else None,
-                "consent_status": participant.consent_status.value if participant.consent_status else None,
-                "enrollment_date": participant.enrollment_date.isoformat() if participant.enrollment_date else None,
-                "created_at": participant.created_at.isoformat() if participant.created_at else None,
+                "cohort_status": participant.cohort_status.value
+                if participant.cohort_status
+                else None,
+                "consent_status": participant.consent_status.value
+                if participant.consent_status
+                else None,
+                "enrollment_date": participant.enrollment_date.isoformat()
+                if participant.enrollment_date
+                else None,
+                "created_at": participant.created_at.isoformat()
+                if participant.created_at
+                else None,
             }
             for participant in participants
         ],
@@ -168,7 +179,9 @@ async def list_participants(
 
 
 @router.get("/participants/breakdown/by-country")
-async def participants_by_country(db: AsyncSession = Depends(get_db)) -> list[dict[str, Any]]:
+async def participants_by_country(
+    db: AsyncSession = Depends(get_db),
+) -> list[dict[str, Any]]:
     rows = (
         await db.execute(
             select(
@@ -180,14 +193,13 @@ async def participants_by_country(db: AsyncSession = Depends(get_db)) -> list[di
         )
     ).all()
 
-    return [
-        {"country": row.country, "total": row.total}
-        for row in rows
-    ]
+    return [{"country": row.country, "total": row.total} for row in rows]
 
 
 @router.get("/participants/breakdown/by-site")
-async def participants_by_site(db: AsyncSession = Depends(get_db)) -> list[dict[str, Any]]:
+async def participants_by_site(
+    db: AsyncSession = Depends(get_db),
+) -> list[dict[str, Any]]:
     rows = (
         await db.execute(
             select(
@@ -201,8 +213,7 @@ async def participants_by_site(db: AsyncSession = Depends(get_db)) -> list[dict[
     ).all()
 
     return [
-        {"country": row.country, "site": row.site, "total": row.total}
-        for row in rows
+        {"country": row.country, "site": row.site, "total": row.total} for row in rows
     ]
 
 
@@ -228,7 +239,10 @@ async def get_participant_detail(
 
     consent = participant.consents[0] if participant.consents else None
     latest_survey = (
-        max(participant.surveys, key=lambda survey: survey.month if survey.month is not None else -1)
+        max(
+            participant.surveys,
+            key=lambda survey: survey.month if survey.month is not None else -1,
+        )
         if participant.surveys
         else None
     )
@@ -240,41 +254,68 @@ async def get_participant_detail(
         "site": participant.site,
         "school": participant.school,
         "age": participant.age,
-        "date_of_birth": participant.date_of_birth.isoformat() if participant.date_of_birth else None,
+        "date_of_birth": participant.date_of_birth.isoformat()
+        if participant.date_of_birth
+        else None,
         "gender": participant.gender,
         "grade_level": participant.grade_level,
-        "cohort_status": participant.cohort_status.value if participant.cohort_status else None,
-        "consent_status": participant.consent_status.value if participant.consent_status else None,
-        "enrollment_date": participant.enrollment_date.isoformat() if participant.enrollment_date else None,
+        "cohort_status": participant.cohort_status.value
+        if participant.cohort_status
+        else None,
+        "consent_status": participant.consent_status.value
+        if participant.consent_status
+        else None,
+        "enrollment_date": participant.enrollment_date.isoformat()
+        if participant.enrollment_date
+        else None,
         "redcap_data_access_group": participant.redcap_data_access_group,
         "consent": {
-            "consent_date": consent.consent_date.isoformat() if consent and consent.consent_date else None,
+            "consent_date": consent.consent_date.isoformat()
+            if consent and consent.consent_date
+            else None,
             "consent_version": consent.consent_version if consent else None,
             "guardian_consent": consent.guardian_consent if consent else None,
             "assent_status": consent.assent_status if consent else None,
             "consent_withdrawn": consent.consent_withdrawn if consent else None,
-        } if consent else None,
+        }
+        if consent
+        else None,
         "latest_survey": {
             "month": latest_survey.month,
-            "survey_date": latest_survey.survey_date.isoformat() if latest_survey and latest_survey.survey_date else None,
-            "perceived_stress_score": latest_survey.perceived_stress_score if latest_survey else None,
+            "survey_date": latest_survey.survey_date.isoformat()
+            if latest_survey and latest_survey.survey_date
+            else None,
+            "perceived_stress_score": latest_survey.perceived_stress_score
+            if latest_survey
+            else None,
             "anxiety_score": latest_survey.anxiety_score if latest_survey else None,
-            "depression_score": latest_survey.depression_score if latest_survey else None,
+            "depression_score": latest_survey.depression_score
+            if latest_survey
+            else None,
             "risk_flag": latest_survey.risk_flag if latest_survey else None,
-            "suicidality_screening": latest_survey.suicidality_screening if latest_survey else None,
-            "requires_follow_up": latest_survey.requires_follow_up if latest_survey else None,
-        } if latest_survey else None,
+            "suicidality_screening": latest_survey.suicidality_screening
+            if latest_survey
+            else None,
+            "requires_follow_up": latest_survey.requires_follow_up
+            if latest_survey
+            else None,
+        }
+        if latest_survey
+        else None,
         "open_alerts": [
             {
                 "id": str(alert.id),
                 "severity": alert.severity.value if alert.severity else None,
                 "trigger_form": alert.trigger_form,
                 "assigned_responder": alert.assigned_responder,
-                "created_at": alert.created_at.isoformat() if alert.created_at else None,
+                "created_at": alert.created_at.isoformat()
+                if alert.created_at
+                else None,
             }
             for alert in sorted(
                 [
-                    alert for alert in participant.distress_screenings
+                    alert
+                    for alert in participant.distress_screenings
                     if alert.resolution_status == "open"
                 ],
                 key=lambda alert: alert.created_at or alert.id,
@@ -284,8 +325,12 @@ async def get_participant_detail(
         "survey_count": len(participant.surveys),
         "wp6_session_count": len(participant.wp6_sessions),
         "referral_count": len(participant.referrals),
-        "created_at": participant.created_at.isoformat() if participant.created_at else None,
-        "updated_at": participant.updated_at.isoformat() if participant.updated_at else None,
+        "created_at": participant.created_at.isoformat()
+        if participant.created_at
+        else None,
+        "updated_at": participant.updated_at.isoformat()
+        if participant.updated_at
+        else None,
     }
 
 
@@ -298,9 +343,13 @@ async def distress_trends(
     stmt = (
         select(
             SurveyResponse.month,
-            func.round(func.avg(SurveyResponse.perceived_stress_score), 2).label("avg_stress"),
+            func.round(func.avg(SurveyResponse.perceived_stress_score), 2).label(
+                "avg_stress"
+            ),
             func.round(func.avg(SurveyResponse.anxiety_score), 2).label("avg_anxiety"),
-            func.round(func.avg(SurveyResponse.depression_score), 2).label("avg_depression"),
+            func.round(func.avg(SurveyResponse.depression_score), 2).label(
+                "avg_depression"
+            ),
             func.count(SurveyResponse.id).label("n"),
         )
         .join(Participant, SurveyResponse.record_id == Participant.record_id)
@@ -318,9 +367,15 @@ async def distress_trends(
     return [
         {
             "month": row.month,
-            "avg_stress": round(float(row.avg_stress), 2) if row.avg_stress is not None else None,
-            "avg_anxiety": round(float(row.avg_anxiety), 2) if row.avg_anxiety is not None else None,
-            "avg_depression": round(float(row.avg_depression), 2) if row.avg_depression is not None else None,
+            "avg_stress": round(float(row.avg_stress), 2)
+            if row.avg_stress is not None
+            else None,
+            "avg_anxiety": round(float(row.avg_anxiety), 2)
+            if row.avg_anxiety is not None
+            else None,
+            "avg_depression": round(float(row.avg_depression), 2)
+            if row.avg_depression is not None
+            else None,
             "n": row.n,
         }
         for row in rows
@@ -387,7 +442,9 @@ async def distress_alerts(
                 "trigger_form": row.trigger_form,
                 "resolution_status": row.resolution_status,
                 "assigned_responder": row.assigned_responder,
-                "welfare_check_due": row.welfare_check_due.isoformat() if row.welfare_check_due else None,
+                "welfare_check_due": row.welfare_check_due.isoformat()
+                if row.welfare_check_due
+                else None,
                 "created_at": row.created_at.isoformat() if row.created_at else None,
             }
             for row in rows
@@ -403,9 +460,8 @@ async def wp6_sessions(
     offset: int = Query(0, ge=0),
     db: AsyncSession = Depends(get_db),
 ) -> dict[str, Any]:
-    stmt = (
-        select(func.count(WP6Session.id))
-        .join(Participant, WP6Session.record_id == Participant.record_id)
+    stmt = select(func.count(WP6Session.id)).join(
+        Participant, WP6Session.record_id == Participant.record_id
     )
     if record_id:
         stmt = stmt.where(WP6Session.record_id == record_id)
@@ -452,7 +508,9 @@ async def wp6_sessions(
                 "country": row.country,
                 "site": row.site,
                 "session_number": row.session_number,
-                "session_date": row.session_date.isoformat() if row.session_date else None,
+                "session_date": row.session_date.isoformat()
+                if row.session_date
+                else None,
                 "attendance": row.attendance,
                 "engagement_level": row.engagement_level,
                 "fidelity_score": row.fidelity_score,
@@ -471,24 +529,48 @@ async def wp6_summary(db: AsyncSession = Depends(get_db)) -> dict[str, Any]:
         await db.execute(
             select(
                 func.count(WP6Session.id).label("total_sessions"),
-                func.round(func.avg(WP6Session.engagement_level), 2).label("avg_engagement"),
-                func.round(func.avg(WP6Session.fidelity_score), 2).label("avg_fidelity"),
-                func.round(func.avg(WP6Session.satisfaction_score), 2).label("avg_satisfaction"),
-                func.round(func.avg(WP6Session.distress_pre), 2).label("avg_distress_pre"),
-                func.round(func.avg(WP6Session.distress_post), 2).label("avg_distress_post"),
-                func.round(func.avg(WP6Session.distress_pre - WP6Session.distress_post), 2).label("avg_distress_reduction"),
+                func.round(func.avg(WP6Session.engagement_level), 2).label(
+                    "avg_engagement"
+                ),
+                func.round(func.avg(WP6Session.fidelity_score), 2).label(
+                    "avg_fidelity"
+                ),
+                func.round(func.avg(WP6Session.satisfaction_score), 2).label(
+                    "avg_satisfaction"
+                ),
+                func.round(func.avg(WP6Session.distress_pre), 2).label(
+                    "avg_distress_pre"
+                ),
+                func.round(func.avg(WP6Session.distress_post), 2).label(
+                    "avg_distress_post"
+                ),
+                func.round(
+                    func.avg(WP6Session.distress_pre - WP6Session.distress_post), 2
+                ).label("avg_distress_reduction"),
             )
         )
     ).one()
 
     return {
         "total_sessions": row.total_sessions,
-        "avg_engagement": round(float(row.avg_engagement), 2) if row.avg_engagement is not None else None,
-        "avg_fidelity": round(float(row.avg_fidelity), 2) if row.avg_fidelity is not None else None,
-        "avg_satisfaction": round(float(row.avg_satisfaction), 2) if row.avg_satisfaction is not None else None,
-        "avg_distress_pre": round(float(row.avg_distress_pre), 2) if row.avg_distress_pre is not None else None,
-        "avg_distress_post": round(float(row.avg_distress_post), 2) if row.avg_distress_post is not None else None,
-        "avg_distress_reduction": round(float(row.avg_distress_reduction), 2) if row.avg_distress_reduction is not None else None,
+        "avg_engagement": round(float(row.avg_engagement), 2)
+        if row.avg_engagement is not None
+        else None,
+        "avg_fidelity": round(float(row.avg_fidelity), 2)
+        if row.avg_fidelity is not None
+        else None,
+        "avg_satisfaction": round(float(row.avg_satisfaction), 2)
+        if row.avg_satisfaction is not None
+        else None,
+        "avg_distress_pre": round(float(row.avg_distress_pre), 2)
+        if row.avg_distress_pre is not None
+        else None,
+        "avg_distress_post": round(float(row.avg_distress_post), 2)
+        if row.avg_distress_post is not None
+        else None,
+        "avg_distress_reduction": round(float(row.avg_distress_reduction), 2)
+        if row.avg_distress_reduction is not None
+        else None,
     }
 
 
@@ -529,7 +611,10 @@ async def list_surveys(
             SurveyResponse.risk_flag,
             SurveyResponse.requires_follow_up,
         )
-        .order_by(SurveyResponse.survey_date.desc().nullslast(), SurveyResponse.created_at.desc().nullslast())
+        .order_by(
+            SurveyResponse.survey_date.desc().nullslast(),
+            SurveyResponse.created_at.desc().nullslast(),
+        )
         .offset(offset)
         .limit(limit)
     )
@@ -575,7 +660,9 @@ async def participant_longitudinal_surveys(
     db: AsyncSession = Depends(get_db),
 ) -> dict[str, Any]:
     exists = (
-        await db.execute(select(Participant.id).where(Participant.record_id == record_id))
+        await db.execute(
+            select(Participant.id).where(Participant.record_id == record_id)
+        )
     ).scalar_one_or_none()
     if exists is None:
         raise HTTPException(status_code=404, detail="Participant not found")
@@ -597,7 +684,10 @@ async def participant_longitudinal_surveys(
                 SurveyResponse.suicidality_screening,
             )
             .where(SurveyResponse.record_id == record_id)
-            .order_by(SurveyResponse.month.asc().nullslast(), SurveyResponse.survey_date.asc().nullslast())
+            .order_by(
+                SurveyResponse.month.asc().nullslast(),
+                SurveyResponse.survey_date.asc().nullslast(),
+            )
         )
     ).all()
 
@@ -671,11 +761,15 @@ async def list_referrals(
                 "id": str(row.id),
                 "referral_id": row.referral_id,
                 "record_id": row.record_id,
-                "initiation_date": row.initiation_date.isoformat() if row.initiation_date else None,
+                "initiation_date": row.initiation_date.isoformat()
+                if row.initiation_date
+                else None,
                 "destination": row.destination,
                 "status": row.status.value if row.status else None,
                 "notes": row.notes,
-                "follow_up_date": row.follow_up_date.isoformat() if row.follow_up_date else None,
+                "follow_up_date": row.follow_up_date.isoformat()
+                if row.follow_up_date
+                else None,
             }
             for row in rows
         ],

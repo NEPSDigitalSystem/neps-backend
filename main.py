@@ -14,11 +14,13 @@ settings = get_settings()
 scheduler = AsyncIOScheduler()
 scheduler.add_job(scheduled_sync, "interval", minutes=60)
 
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     scheduler.start()
     yield
     scheduler.shutdown()
+
 
 app = FastAPI(title="NEPS API", lifespan=lifespan)
 
@@ -48,5 +50,5 @@ def read_root():
         "message": "hello neps",
         "app_name": settings.APP_NAME,
         "app_env": settings.APP_ENV,
-        "redcap_mock_enabled": settings.REDCAP_MOCK_ENABLED
+        "redcap_mock_enabled": settings.REDCAP_MOCK_ENABLED,
     }
