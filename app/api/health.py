@@ -3,7 +3,6 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from datetime import datetime
 import psutil
 import os
-import requests
 
 from app.api.dependencies import get_db
 

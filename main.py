@@ -7,7 +7,13 @@ from app.api.v1.redcap_sync import router as sync_router, scheduled_sync
 from app.routers import portal, redcap
 from app.core.config import get_settings
 from prometheus_fastapi_instrumentator import Instrumentator
-from apscheduler.schedulers.asyncio import AsyncIOScheduler
+try:
+    from apscheduler import AsyncIOScheduler
+except ImportError as e:
+    raise ImportError(
+        "APScheduler is required to use the async scheduler. "
+        "Install it with: pip install apscheduler"
+    ) from e
 
 settings = get_settings()
 
