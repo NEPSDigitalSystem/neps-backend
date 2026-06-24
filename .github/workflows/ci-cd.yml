@@ -64,11 +64,17 @@ jobs:
       - name: Install deps
         run: |
           pip install -r requirements.txt
-          pip install pytest pytest-cov
+          pip install pytest pytest-cov pytest-asyncio anyio httpx
       - name: Run tests
         env:
           DATABASE_URL: postgresql://neps:neps_password@localhost:5432/neps_db
-        run: pytest --cov=app tests/
+          APP_ENV: test
+          REDCAP_MOCK_ENABLED: "true"
+          DATABASE_USER: neps
+          DATABASE_PASSWORD: neps_password
+          DATABASE_HOST: localhost
+          DATABASE_NAME: neps_db
+        run: pytest --cov=app --cov-report=term-missing tests/
 
   build:
     needs: [check-structure, test]
