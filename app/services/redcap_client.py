@@ -270,10 +270,14 @@ class RedCapClient:
             return response.json()
 
 
-# Initialise once at module load — avoids the threading race condition
-# of lazy initialisation with a global variable
-_redcap_client = RedCapClient()
+# Initialise lazily — avoids the threading race condition
+# of lazy initialisation with a global variable, but prevents
+# module-level side effects during testing.
+_redcap_client = None
 
 
 def get_redcap_client() -> RedCapClient:
+    global _redcap_client
+    if _redcap_client is None:
+        _redcap_client = RedCapClient()
     return _redcap_client

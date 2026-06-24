@@ -153,7 +153,7 @@ class RedCapMockClient:
 
             # Comprehensive waves (6, 12, 18, 24)
             for wave_month in [6, 12, 18, 24]:
-                if any(r["month"] == wave_month for r in participant_responses):
+                if any(r.get("month") == wave_month for r in participant_responses):
                     wave = self._generate_comprehensive_wave(pid, wave_month)
                     participant_responses.append(wave)
 
@@ -214,6 +214,7 @@ class RedCapMockClient:
         return {
             "record_id": record_id,
             "redcap_event_name": f"month_{month}_arm_1",
+            "month": month,
             "wave_type": f"{month}_month",
             "survey_complete": SurveyStatus.COMPLETE,
 
