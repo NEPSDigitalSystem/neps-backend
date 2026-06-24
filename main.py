@@ -7,8 +7,10 @@ from app.api.v1.redcap_sync import router as sync_router, scheduled_sync
 from app.routers import portal, redcap
 from app.core.config import get_settings
 from prometheus_fastapi_instrumentator import Instrumentator
+import os
+
 try:
-    from apscheduler import AsyncIOScheduler
+    from apscheduler.schedulers.asyncio import AsyncIOScheduler
 except ImportError as e:
     raise ImportError(
         "APScheduler is required to use the async scheduler. "
@@ -17,15 +19,19 @@ except ImportError as e:
 
 settings = get_settings()
 
-scheduler = AsyncIOScheduler()
-scheduler.add_job(scheduled_sync, "interval", minutes=60)
+scheduler = None
+if os.getenv("APP_ENV") != "test":
+    scheduler = AsyncIOScheduler()
+    scheduler.add_job(scheduled_sync, "interval", minutes=60)
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    scheduler.start()
+    if scheduler is not None:
+        scheduler.start()
     yield
-    scheduler.shutdown()
+    if scheduler is not None:
+        scheduler.shutdown()
 
 
 app = FastAPI(title="NEPS API", lifespan=lifespan)
