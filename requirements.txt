@@ -1,4 +1,4 @@
-fastapi[standard]==0.115.0
+fastapi[standard]==0.141.1
 psutil==6.1.1
 sqlalchemy==2.0.35
 asyncpg==0.31.0
