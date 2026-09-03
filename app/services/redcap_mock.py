@@ -87,6 +87,11 @@ class RedCapMockClient:
             age = random.randint(12, 24)
             dob = datetime.now() - timedelta(days=age*365 + random.randint(0, 364))
 
+            employment_opts = ["employed", "unemployed", "student", "self-employed", "casual_labor", "not_applicable"]
+            food_opts = ["secure", "mildly_insecure", "moderately_insecure", "severely_insecure"]
+            hc_opts = ["excellent", "good", "fair", "poor", "none"]
+            ses_opts = ["high", "upper_middle", "middle", "lower_middle", "low"]
+
             participant = {
                 "record_id": f"NEPS-{country[:3].upper()}-{i:04d}",
                 "redcap_event_name": "baseline_arm_1",
@@ -107,6 +112,10 @@ class RedCapMockClient:
                 "redcap_data_access_group": site.lower().replace(" ", "_"),
                 "redcap_repeat_instrument": "",
                 "redcap_repeat_instance": "",
+                "employment_status": random.choice(employment_opts),
+                "food_security": random.choice(food_opts),
+                "healthcare_access": random.choice(hc_opts),
+                "socioeconomic_status": random.choice(ses_opts),
             }
             participants.append(participant)
 
@@ -167,6 +176,36 @@ class RedCapMockClient:
         base_stress = random.uniform(15, 35)
         trend = month * random.uniform(-0.3, 0.5)  # Slight deterioration over time
 
+        stress_score = round(min(40, max(0, base_stress + trend + random.uniform(-5, 5))), 1)
+        anxiety_score = round(random.uniform(0, 21), 1)
+        depression_score = round(random.uniform(0, 27), 1)
+
+        sleep_quality_text = random.choice(["Excellent", "Good", "Fair", "Poor"])
+        fatigue_level_text = random.choice(["None", "Mild", "Moderate", "Severe"])
+        substance_use_text = random.choice(["None", "Alcohol", "Cannabis", "Other"])
+        suicidality_text = random.choice(["No", "No", "No", "Passive thoughts", "Active plan"])
+        school_attendance_days = random.randint(15, 22)
+
+        # Numeric v3 scores — semantically correlated matching validated dataset
+        # mood_score: 0-30, inversely correlated with depression
+        mood_score = round(max(0.0, min(30.0, 30.0 - depression_score * (random.uniform(0.85, 1.15)) + random.uniform(-2, 2))), 1)
+        # coping_score: 0-30, inversely correlated with stress
+        coping_score = round(max(0.0, min(30.0, 30.0 - stress_score * 0.55 + random.uniform(-3, 3))), 1)
+        # sleep_quality_score: 0-30, derived from text (Excellent/Good/Fair/Poor -> high/mid/low)
+        sleep_map = {"Excellent": 28.0, "Good": 20.0, "Fair": 12.0, "Poor": 5.0}
+        sleep_quality_score = round(max(0.0, min(30.0, sleep_map[sleep_quality_text] + random.uniform(-2, 2))), 1)
+        # fatigue_score: 0-30, derived from text (None/Mild/Moderate/Severe -> low/mid/high)
+        fatigue_map = {"None": 3.0, "Mild": 10.0, "Moderate": 20.0, "Severe": 28.0}
+        fatigue_score = round(max(0.0, min(30.0, fatigue_map[fatigue_level_text] + random.uniform(-2, 2))), 1)
+        # attendance_score: 0-25, normalized from days attended
+        attendance_score = round(max(0.0, min(25.0, school_attendance_days * 1.15 + random.uniform(-1, 1))), 1)
+        # substance_abuse_score: 0-20, derived from substance use text
+        sub_map = {"None": 0.0, "Alcohol": 8.0, "Cannabis": 10.0, "Other": 5.0}
+        substance_abuse_score = round(max(0.0, min(20.0, sub_map[substance_use_text] + random.uniform(-1, 1))), 1)
+        # suicidality_score: 0-15, derived from suicidality screening text
+        suic_map = {"No": 0.0, "Passive thoughts": 7.0, "Active plan": 13.0, "Recent attempt": 15.0}
+        suicidality_score = round(max(0.0, min(15.0, suic_map.get(suicidality_text, 0.0) + random.uniform(-0.5, 0.5))), 1)
+
         response = {
             "record_id": record_id,
             "redcap_event_name": f"month_{month}_arm_1" if not is_baseline else "baseline_arm_1",
@@ -175,24 +214,33 @@ class RedCapMockClient:
             "survey_complete": SurveyStatus.COMPLETE,
 
             # Core WP4 psychosocial indicators
-            "perceived_stress_score": round(min(40, max(0, base_stress + trend + random.uniform(-5, 5))), 1),
+            "perceived_stress_score": stress_score,
             "mood_status": random.choice(["Good", "Fair", "Poor", "Very poor"]),
-            "anxiety_score": round(random.uniform(0, 21), 1),
-            "depression_score": round(random.uniform(0, 27), 1),
-            "sleep_quality": random.choice(["Excellent", "Good", "Fair", "Poor"]),
+            "anxiety_score": anxiety_score,
+            "depression_score": depression_score,
+            "sleep_quality": sleep_quality_text,
             "daily_functioning": round(random.uniform(0, 100), 1),
-            "fatigue_level": random.choice(["None", "Mild", "Moderate", "Severe"]),
+            "fatigue_level": fatigue_level_text,
 
             # Educational
-            "school_attendance_days": random.randint(15, 22),
+            "school_attendance_days": school_attendance_days,
             "social_isolation_score": round(random.uniform(0, 10), 1),
             "coping_behaviours": random.choice(["Active", "Avoidant", "Social", "Substance use"]),
-            "substance_use": random.choice(["None", "Alcohol", "Cannabis", "Other"]),
+            "substance_use": substance_use_text,
 
             # Safeguarding screening
-            "suicidality_screening": random.choice(["No", "Passive thoughts", "Active plan", "Recent attempt"]),
+            "suicidality_screening": suicidality_text,
             "self_esteem_score": round(random.uniform(10, 40), 1),
             "loneliness_score": round(random.uniform(0, 20), 1),
+
+            # v3 Numeric ML scores — Yasmine 14
+            "mood_score": mood_score,
+            "sleep_quality_score": sleep_quality_score,
+            "fatigue_score": fatigue_score,
+            "attendance_score": attendance_score,
+            "coping_score": coping_score,
+            "substance_abuse_score": substance_abuse_score,
+            "suicidality_score": suicidality_score,
 
             # REDCap metadata
             "redcap_repeat_instrument": "monthly_self_report",
