@@ -106,6 +106,15 @@ class SurveyResponse(Base):
     community_connectedness = Column(Float)
     religious_support = Column(Float)
     school_belonging = Column(Float)
+    
+    # ML score fields (v3 expanded schema)
+    mood_score = Column(Float)
+    sleep_quality_score = Column(Float)
+    fatigue_score = Column(Float)
+    attendance_score = Column(Float)
+    coping_score = Column(Float)
+    substance_abuse_score = Column(Float)
+    suicidality_score = Column(Float)
 
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())

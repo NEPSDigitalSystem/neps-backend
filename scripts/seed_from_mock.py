@@ -49,7 +49,12 @@ async def seed_database():
                 cohort_status=p_data.get("cohort_status", "active"),
                 phone_contact=p_data.get("phone_contact"),
                 consent_status=p_data.get("consent_status", "pending"),
-                redcap_data_access_group=p_data.get("redcap_data_access_group")
+                redcap_data_access_group=p_data.get("redcap_data_access_group"),
+                # Socio-economic fields (v3 expanded schema)
+                employment_status=p_data.get("employment_status"),
+                food_security=p_data.get("food_security"),
+                healthcare_access=p_data.get("healthcare_access"),
+                socioeconomic_status=p_data.get("socioeconomic_status")
             )
             session.add(participant)
             participant_map[p_data["record_id"]] = participant
@@ -145,7 +150,15 @@ async def seed_database():
                     peer_support=r_data.get("peer_support"),
                     community_connectedness=r_data.get("community_connectedness"),
                     religious_support=r_data.get("religious_support"),
-                    school_belonging=r_data.get("school_belonging")
+                    school_belonging=r_data.get("school_belonging"),
+                    # ML score fields (v3 expanded schema)
+                    mood_score=r_data.get("mood_score"),
+                    sleep_quality_score=r_data.get("sleep_quality_score"),
+                    fatigue_score=r_data.get("fatigue_score"),
+                    attendance_score=r_data.get("attendance_score"),
+                    coping_score=r_data.get("coping_score"),
+                    substance_abuse_score=r_data.get("substance_abuse_score"),
+                    suicidality_score=r_data.get("suicidality_score")
                 )
                 survey_responses.append(survey_response)
         

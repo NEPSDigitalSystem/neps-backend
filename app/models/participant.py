@@ -41,6 +41,12 @@ class Participant(Base):
     redcap_data_access_group = Column(String)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
+    
+    # Socio-economic fields (v3 expanded schema)
+    employment_status = Column(String)
+    food_security = Column(String)
+    healthcare_access = Column(String)
+    socioeconomic_status = Column(String)
 
     # Relationships
     consents = relationship("ConsentRecord", back_populates="participant", cascade="all, delete-orphan")
