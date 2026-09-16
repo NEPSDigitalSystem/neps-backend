@@ -97,13 +97,18 @@ class Settings(BaseSettings):
                 return secret
         return self.SECRET_KEY
 
+    DATABASE_SSL_MODE: Optional[str] = None
+
     @property
     def database_url(self) -> str:
-        return f"postgresql+asyncpg://{self.database_user}:{self.database_password}@{self.DATABASE_HOST}:{self.DATABASE_PORT}/{self.DATABASE_NAME}"
+        ssl_query = f"?ssl={self.DATABASE_SSL_MODE}" if self.DATABASE_SSL_MODE else ""
+        return f"postgresql+asyncpg://{self.database_user}:{self.database_password}@{self.DATABASE_HOST}:{self.DATABASE_PORT}/{self.DATABASE_NAME}{ssl_query}"
 
     @property
     def sync_database_url(self) -> str:
-        return f"postgresql://{self.database_user}:{self.database_password}@{self.DATABASE_HOST}:{self.DATABASE_PORT}/{self.DATABASE_NAME}"
+        ssl_query = f"?sslmode={self.DATABASE_SSL_MODE}" if self.DATABASE_SSL_MODE else ""
+        return f"postgresql://{self.database_user}:{self.database_password}@{self.DATABASE_HOST}:{self.DATABASE_PORT}/{self.DATABASE_NAME}{ssl_query}"
+
 
     @property
     def cors_origins_list(self) -> list[str]:
